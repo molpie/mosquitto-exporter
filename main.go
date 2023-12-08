@@ -56,6 +56,10 @@ func main() {
 	app.Version = versionString()
 	app.Authors = []*cli.Author{
 		{
+			Name:  "Johan Ryberg",
+			Email: "johan@securit.se",
+		},
+		{
 			Name:  "Arturo Reuschenbach Puncernau",
 			Email: "a.reuschenbach.puncernau@sap.com",
 		},
