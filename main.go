@@ -14,7 +14,7 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -49,13 +49,12 @@ var (
 func main() {
 	app := cli.NewApp()
 
-	// mqtt.DEBUG = log.New(os.Stdout, "", 0)
 	mqtt.ERROR = log.New(os.Stdout, "", 0)
 	mqtt.WARN = log.New(os.Stdout, "", 0)
 
 	app.Name = appName
 	app.Version = versionString()
-	app.Authors = []cli.Author{
+	app.Authors = []*cli.Author{
 		{
 			Name:  "Arturo Reuschenbach Puncernau",
 			Email: "a.reuschenbach.puncernau@sap.com",
@@ -68,54 +67,61 @@ func main() {
 	app.Usage = "Prometheus exporter for broker metrics"
 	app.Action = runServer
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:   "endpoint,e",
-			Usage:  "Endpoint for the Mosquitto message broker",
-			EnvVar: "BROKER_ENDPOINT",
-			Value:  "tcp://127.0.0.1:1883",
+		&cli.StringFlag{
+			Name:    "endpoint",
+			Aliases: []string{"e"},
+			Usage:   "Endpoint for the Mosquitto message broker",
+			EnvVars: []string{"BROKER_ENDPOINT"},
+			Value:   "tcp://127.0.0.1:1883",
 		},
-		cli.StringFlag{
-			Name:   "bind-address,b",
-			Usage:  "Listen address for metrics HTTP endpoint",
-			Value:  "0.0.0.0:9234",
-			EnvVar: "BIND_ADDRESS",
+		&cli.StringFlag{
+			Name:    "bind-address",
+			Aliases: []string{"b"},
+			Usage:   "Listen address for metrics HTTP endpoint",
+			Value:   "0.0.0.0:9234",
+			EnvVars: []string{"BIND_ADDRESS"},
 		},
-		cli.StringFlag{
-			Name:   "user,u",
-			Usage:  "Username for the Mosquitto message broker",
-			Value:  "",
-			EnvVar: "MQTT_USER",
+		&cli.StringFlag{
+			Name:    "user",
+			Aliases: []string{"u"},
+			Usage:   "Username for the Mosquitto message broker",
+			Value:   "",
+			EnvVars: []string{"MQTT_USER"},
 		},
-		cli.StringFlag{
-			Name:   "pass,p",
-			Usage:  "Password for the User on the Mosquitto message broker",
-			Value:  "",
-			EnvVar: "MQTT_PASS",
+		&cli.StringFlag{
+			Name:    "pass",
+			Aliases: []string{"p"},
+			Usage:   "Password for the User on the Mosquitto message broker",
+			Value:   "",
+			EnvVars: []string{"MQTT_PASS"},
 		},
-		cli.StringFlag{
-			Name:   "cert,c",
-			Usage:  "Location of a TLS certificate .pem file for the Mosquitto message broker",
-			Value:  "",
-			EnvVar: "MQTT_CERT",
+		&cli.StringFlag{
+			Name:    "cert",
+			Aliases: []string{"c"},
+			Usage:   "Location of a TLS certificate .pem file for the Mosquitto message broker",
+			Value:   "",
+			EnvVars: []string{"MQTT_CERT"},
 		},
-		cli.StringFlag{
-			Name:   "key,k",
-			Usage:  "Location of a TLS private key .pem file for the Mosquitto message broker",
-			Value:  "",
-			EnvVar: "MQTT_KEY",
+		&cli.StringFlag{
+			Name:    "key",
+			Aliases: []string{"k"},
+			Usage:   "Location of a TLS private key .pem file for the Mosquitto message broker",
+			Value:   "",
+			EnvVars: []string{"MQTT_KEY"},
 		},
-		cli.StringFlag{
-			Name:   "client-id,i",
-			Usage:  "Client id to be used to connect to the Mosquitto message broker",
-			Value:  "",
-			EnvVar: "MQTT_CLIENT_ID",
+		&cli.StringFlag{
+			Name:    "client-id",
+			Aliases: []string{"i"},
+			Usage:   "Client id to be used to connect to the Mosquitto message broker",
+			Value:   "",
+			EnvVars: []string{"MQTT_CLIENT_ID"},
 		},
 	}
 
 	app.Run(os.Args)
 }
 
-func runServer(c *cli.Context) {
+func runServer(c *cli.Context) error {
 	log.Printf("Starting mosquitto_broker %s", versionString())
 
 	opts := mqtt.NewClientOptions()
@@ -189,9 +195,10 @@ func runServer(c *cli.Context) {
 	// init the router and server
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/", serveVersion)
-	log.Printf("Listening on %s...", c.GlobalString("bind-address"))
-	err := http.ListenAndServe(c.GlobalString("bind-address"), nil)
-	fatalfOnError(err, "Failed to bind on %s: ", c.GlobalString("bind-address"))
+	log.Printf("Listening on %s...", c.String("bind-address"))
+	err := http.ListenAndServe(c.String("bind-address"), nil)
+	fatalfOnError(err, "Failed to bind on %s: ", c.String("bind-address"))
+	return nil
 }
 
 // $SYS/broker/bytes/received
