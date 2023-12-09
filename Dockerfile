@@ -12,7 +12,7 @@ COPY . .
 RUN make build
 
 FROM scratch
-LABEL source_repository="https://github.com/sapcc/mosquitto-exporter"
+LABEL source_repository="https://github.com/jryberg/mosquitto-exporter"
 
 COPY --from=build /go/src/app/bin/mosquitto_exporter /mosquitto_exporter
 
