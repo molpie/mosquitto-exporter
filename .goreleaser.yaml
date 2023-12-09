@@ -25,3 +25,29 @@ docker_manifests:
   image_templates:
   - 'jryberg/mosquitto-exporter:{{ .Tag }}-amd64'
   - 'jryberg/mosquitto-exporter:{{ .Tag }}-arm64'
+changelog:
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: "Fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: "Build"
+      regexp: '^.*?build(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: Others
+      order: 999
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test"
+      - "^typo"
+      - "^ci"
+    include:
+      - "^build"
+      - "^feat"
+      - "^fix"
+      - "^perf"
+      - "^refactor"
+      - "^style"
