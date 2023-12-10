@@ -120,9 +120,29 @@ func main() {
 			Value:   "",
 			EnvVars: []string{"MQTT_CLIENT_ID"},
 		},
+		&cli.BoolFlag{
+			Name:    "reset-metrics",
+			Aliases: []string{"r"},
+			Usage:   "Reset metrics when loosing connection to broker",
+			Value:   true,
+			EnvVars: []string{"RESET_METRICS"},
+		},
 	}
 
 	app.Run(os.Args)
+}
+
+func resetMetrics() {
+	for topic := range counterMetrics {
+		if counterMetrics[topic] != nil {
+			counterMetrics[topic].Set(0)
+		}
+	}
+	for topic := range gaugeMetrics {
+		if gaugeMetrics[topic] != nil {
+			gaugeMetrics[topic].Set(0)
+		}
+	}
 }
 
 func runServer(c *cli.Context) error {
@@ -178,7 +198,12 @@ func runServer(c *cli.Context) error {
 		}
 	}
 	opts.OnConnectionLost = func(client mqtt.Client, err error) {
-		log.Printf("Error: Connection to %s lost: %s", c.String("endpoint"), err)
+		if c.Bool("reset-metrics") {
+			log.Printf("Error: Connection to %s lost: %s, resetting counters", c.String("endpoint"), err)
+			resetMetrics()
+		} else {
+			log.Printf("Error: Connection to %s lost: %s", c.String("endpoint"), err)
+		}
 	}
 	client := mqtt.NewClient(opts)
 
