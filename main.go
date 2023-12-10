@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	appName = "Mosquitto exporter"
+	appName = "mosquitto-exporter"
 )
 
 var (
