@@ -14,13 +14,13 @@ Usage:
 
 ```
 NAME:
-   Mosquitto exporter - Prometheus exporter for broker metrics
+   mosquitto-exporter - Prometheus exporter for broker metrics
 
 USAGE:
    mosquitto-exporter [global options] command [command options] [arguments...]
 
 VERSION:
-   v0.7.0 (7af293e8de0305b0ea318ef514d70c003cb6c6e1), go1.21.4
+   v0.7.1 (ee8fb65dd54c0d0f2f4f51da723188317bb09679), go1.21.4
 
 AUTHORS:
    Johan Ryberg <johan@securit.se>
@@ -38,6 +38,7 @@ GLOBAL OPTIONS:
    --cert value, -c value          Location of a TLS certificate .pem file for the Mosquitto message broker [$MQTT_CERT]
    --key value, -k value           Location of a TLS private key .pem file for the Mosquitto message broker [$MQTT_KEY]
    --client-id value, -i value     Client id to be used to connect to the Mosquitto message broker [$MQTT_CLIENT_ID]
+   --reset-metrics, -r             Reset metrics when loosing connection to broker (default: true) [$RESET_METRICS]
    --help, -h                      show help
    --version, -v                   print the version
 ```
