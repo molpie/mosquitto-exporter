@@ -143,7 +143,7 @@ func resetMetrics() {
 }
 
 func runServer(c *cli.Context) error {
-	log.Infof("Starting mosquitto_broker %s", versionString())
+	log.Infof("Starting %s %s", appName, versionString())
 
 	opts := mqtt.NewClientOptions()
 	opts.SetCleanSession(true)
