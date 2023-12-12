@@ -5,6 +5,7 @@ go 1.21
 require (
 	github.com/eclipse/paho.mqtt.golang v1.4.3
 	github.com/prometheus/client_golang v1.17.0
+	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.26.0
 )
 

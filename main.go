@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -14,6 +13,7 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
 
@@ -48,9 +48,6 @@ var (
 
 func main() {
 	app := cli.NewApp()
-
-	mqtt.ERROR = log.New(os.Stdout, "", 0)
-	mqtt.WARN = log.New(os.Stdout, "", 0)
 
 	app.Name = appName
 	app.Version = versionString()
@@ -146,7 +143,7 @@ func resetMetrics() {
 }
 
 func runServer(c *cli.Context) error {
-	log.Printf("Starting mosquitto_broker %s", versionString())
+	log.Infof("Starting mosquitto_broker %s", versionString())
 
 	opts := mqtt.NewClientOptions()
 	opts.SetCleanSession(true)
@@ -167,7 +164,7 @@ func runServer(c *cli.Context) error {
 	if c.String("cert") != "" && c.String("key") != "" {
 		keyPair, err := tls.LoadX509KeyPair(c.String("cert"), c.String("key"))
 		if err != nil {
-			log.Printf("Failed to load certificate/keypair: %s", err)
+			log.Errorf("Failed to load certificate/keypair: %s", err)
 		}
 		tlsConfig := &tls.Config{
 			Certificates:       []tls.Certificate{keyPair},
@@ -185,7 +182,7 @@ func runServer(c *cli.Context) error {
 	}
 
 	opts.OnConnect = func(client mqtt.Client) {
-		log.Printf("Connected to %s", c.String("endpoint"))
+		log.Infof("Connected to %s", c.String("endpoint"))
 		// subscribe on every (re)connect
 		token := client.Subscribe("$SYS/#", 0, func(_ mqtt.Client, msg mqtt.Message) {
 			processUpdate(msg.Topic(), string(msg.Payload()))
@@ -194,15 +191,15 @@ func runServer(c *cli.Context) error {
 			log.Println("Error: Timeout subscribing to topic $SYS/#")
 		}
 		if err := token.Error(); err != nil {
-			log.Printf("Failed to subscribe to topic $SYS/#: %s", err)
+			log.Errorf("Failed to subscribe to topic $SYS/#: %s", err)
 		}
 	}
 	opts.OnConnectionLost = func(client mqtt.Client, err error) {
 		if c.Bool("reset-metrics") {
-			log.Printf("Error: Connection to %s lost: %s, resetting counters", c.String("endpoint"), err)
+			log.Warnf("Error: Connection to %s lost: %s, resetting counters", c.String("endpoint"), err)
 			resetMetrics()
 		} else {
-			log.Printf("Error: Connection to %s lost: %s", c.String("endpoint"), err)
+			log.Warnf("Error: Connection to %s lost: %s", c.String("endpoint"), err)
 		}
 	}
 	client := mqtt.NewClient(opts)
@@ -214,9 +211,9 @@ func runServer(c *cli.Context) error {
 			if token.Error() == nil {
 				break
 			}
-			log.Printf("Error: Failed to connect to broker: %s", token.Error())
+			log.Errorf("Error: Failed to connect to broker: %s", token.Error())
 		} else {
-			log.Printf("Timeout connecting to endpoint %s", c.String("endpoint"))
+			log.Errorf("Timeout connecting to endpoint %s", c.String("endpoint"))
 		}
 		time.Sleep(5 * time.Second)
 	}
@@ -224,7 +221,7 @@ func runServer(c *cli.Context) error {
 	// init the router and server
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/", serveVersion)
-	log.Printf("Listening on %s...", c.String("bind-address"))
+	log.Infof("Listening on %s...", c.String("bind-address"))
 	err := http.ListenAndServe(c.String("bind-address"), nil)
 	fatalfOnError(err, "Failed to bind on %s: ", c.String("bind-address"))
 	return nil
