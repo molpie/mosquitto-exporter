@@ -1,6 +1,6 @@
 module github.com/sapcc/mosquitto-exporter
 
-go 1.22
+go 1.22.6
 
 require (
 	github.com/eclipse/paho.mqtt.golang v1.5.0
@@ -14,7 +14,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
-	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
