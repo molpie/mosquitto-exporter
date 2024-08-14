@@ -1,3 +1,4 @@
+version: 2
 project_name: mosquitto-exporter
 builds:
   - env: [CGO_ENABLED=0]
