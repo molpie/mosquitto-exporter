@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	Version = "v0.7.2"
+	Version = "v0.7.3"
 )
 
 var Commit = func() string {
