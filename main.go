@@ -217,6 +217,7 @@ func runServer(c *cli.Context) error {
 		}
 		time.Sleep(5 * time.Second)
 	}
+	log.Infof("Connected to %s", c.String("endpoint"))
 
 	// init the router and server
 	http.Handle("/metrics", promhttp.Handler())
