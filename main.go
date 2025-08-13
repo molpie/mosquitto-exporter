@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"regexp"
@@ -14,7 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 const (
@@ -47,86 +48,77 @@ var (
 )
 
 func main() {
-	app := cli.NewApp()
-
-	app.Name = appName
-	app.Version = versionString()
-	app.Authors = []*cli.Author{
-		{
-			Name:  "Johan Ryberg",
-			Email: "johan@securit.se",
+	cmd := &cli.Command{
+		Name:    appName,
+		Version: versionString(),
+		Authors: []any{
+			"Johan Ryberg <johan@securit.se>",
+			"Arturo Reuschenbach Puncernau <a.reuschenbach.puncernau@sap.com>",
+			"Fabian Ruff <fabian.ruff@sap.com>",
 		},
-		{
-			Name:  "Arturo Reuschenbach Puncernau",
-			Email: "a.reuschenbach.puncernau@sap.com",
-		},
-		{
-			Name:  "Fabian Ruff",
-			Email: "fabian.ruff@sap.com",
-		},
-	}
-	app.Usage = "Prometheus exporter for broker metrics"
-	app.Action = runServer
-	app.Flags = []cli.Flag{
-		&cli.StringFlag{
-			Name:    "endpoint",
-			Aliases: []string{"e"},
-			Usage:   "Endpoint for the Mosquitto message broker",
-			EnvVars: []string{"BROKER_ENDPOINT"},
-			Value:   "tcp://127.0.0.1:1883",
-		},
-		&cli.StringFlag{
-			Name:    "bind-address",
-			Aliases: []string{"b"},
-			Usage:   "Listen address for metrics HTTP endpoint",
-			Value:   "0.0.0.0:9234",
-			EnvVars: []string{"BIND_ADDRESS"},
-		},
-		&cli.StringFlag{
-			Name:    "user",
-			Aliases: []string{"u"},
-			Usage:   "Username for the Mosquitto message broker",
-			Value:   "",
-			EnvVars: []string{"MQTT_USER"},
-		},
-		&cli.StringFlag{
-			Name:    "pass",
-			Aliases: []string{"p"},
-			Usage:   "Password for the User on the Mosquitto message broker",
-			Value:   "",
-			EnvVars: []string{"MQTT_PASS"},
-		},
-		&cli.StringFlag{
-			Name:    "cert",
-			Aliases: []string{"c"},
-			Usage:   "Location of a TLS certificate .pem file for the Mosquitto message broker",
-			Value:   "",
-			EnvVars: []string{"MQTT_CERT"},
-		},
-		&cli.StringFlag{
-			Name:    "key",
-			Aliases: []string{"k"},
-			Usage:   "Location of a TLS private key .pem file for the Mosquitto message broker",
-			Value:   "",
-			EnvVars: []string{"MQTT_KEY"},
-		},
-		&cli.StringFlag{
-			Name:    "client-id",
-			Aliases: []string{"i"},
-			Usage:   "Client id to be used to connect to the Mosquitto message broker",
-			Value:   "",
-			EnvVars: []string{"MQTT_CLIENT_ID"},
-		},
-		&cli.BoolFlag{
-			Name:    "reset-metrics",
-			Aliases: []string{"r"},
-			Usage:   "Reset metrics when loosing connection to broker",
-			Value:   true,
-			EnvVars: []string{"RESET_METRICS"},
+		Usage:  "Prometheus exporter for broker metrics",
+		Action: runServer,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "endpoint",
+				Aliases: []string{"e"},
+				Usage:   "Endpoint for the Mosquitto message broker",
+				Sources: cli.EnvVars("BROKER_ENDPOINT"),
+				Value:   "tcp://127.0.0.1:1883",
+			},
+			&cli.StringFlag{
+				Name:    "bind-address",
+				Aliases: []string{"b"},
+				Usage:   "Listen address for metrics HTTP endpoint",
+				Value:   "0.0.0.0:9234",
+				Sources: cli.EnvVars("BIND_ADDRESS"),
+			},
+			&cli.StringFlag{
+				Name:    "user",
+				Aliases: []string{"u"},
+				Usage:   "Username for the Mosquitto message broker",
+				Value:   "",
+				Sources: cli.EnvVars("MQTT_USER"),
+			},
+			&cli.StringFlag{
+				Name:    "pass",
+				Aliases: []string{"p"},
+				Usage:   "Password for the User on the Mosquitto message broker",
+				Value:   "",
+				Sources: cli.EnvVars("MQTT_PASS"),
+			},
+			&cli.StringFlag{
+				Name:    "cert",
+				Aliases: []string{"c"},
+				Usage:   "Location of a TLS certificate .pem file for the Mosquitto message broker",
+				Value:   "",
+				Sources: cli.EnvVars("MQTT_CERT"),
+			},
+			&cli.StringFlag{
+				Name:    "key",
+				Aliases: []string{"k"},
+				Usage:   "Location of a TLS private key .pem file for the Mosquitto message broker",
+				Value:   "",
+				Sources: cli.EnvVars("MQTT_KEY"),
+			},
+			&cli.StringFlag{
+				Name:    "client-id",
+				Aliases: []string{"i"},
+				Usage:   "Client id to be used to connect to the Mosquitto message broker",
+				Value:   "",
+				Sources: cli.EnvVars("MQTT_CLIENT_ID"),
+			},
+			&cli.BoolFlag{
+				Name:    "reset-metrics",
+				Aliases: []string{"r"},
+				Usage:   "Reset metrics when loosing connection to broker",
+				Value:   true,
+				Sources: cli.EnvVars("RESET_METRICS"),
+			},
 		},
 	}
 
-	app.Run(os.Args)
+	cmd.Run(context.Background(), os.Args)
 }
 
 func resetMetrics() {
@@ -142,27 +134,27 @@ func resetMetrics() {
 	}
 }
 
-func runServer(c *cli.Context) error {
+func runServer(ctx context.Context, cmd *cli.Command) error {
 	log.Infof("Starting %s %s", appName, versionString())
 
 	opts := mqtt.NewClientOptions()
 	opts.SetCleanSession(true)
-	opts.AddBroker(c.String("endpoint"))
+	opts.AddBroker(cmd.String("endpoint"))
 
-	if c.String("client-id") != "" {
-		opts.SetClientID(c.String("client-id"))
+	if cmd.String("client-id") != "" {
+		opts.SetClientID(cmd.String("client-id"))
 	}
 
 	// if you have a username you'll need a password with it
-	if c.String("user") != "" {
-		opts.SetUsername(c.String("user"))
-		if c.String("pass") != "" {
-			opts.SetPassword(c.String("pass"))
+	if cmd.String("user") != "" {
+		opts.SetUsername(cmd.String("user"))
+		if cmd.String("pass") != "" {
+			opts.SetPassword(cmd.String("pass"))
 		}
 	}
 	// if you have a client certificate you want a key aswell
-	if c.String("cert") != "" && c.String("key") != "" {
-		keyPair, err := tls.LoadX509KeyPair(c.String("cert"), c.String("key"))
+	if cmd.String("cert") != "" && cmd.String("key") != "" {
+		keyPair, err := tls.LoadX509KeyPair(cmd.String("cert"), cmd.String("key"))
 		if err != nil {
 			log.Errorf("Failed to load certificate/keypair: %s", err)
 		}
@@ -172,17 +164,17 @@ func runServer(c *cli.Context) error {
 			ClientAuth:         tls.NoClientCert,
 		}
 		opts.SetTLSConfig(tlsConfig)
-		if !strings.HasPrefix(c.String("endpoint"), "ssl://") &&
-			!strings.HasPrefix(c.String("endpoint"), "tls://") {
+		if !strings.HasPrefix(cmd.String("endpoint"), "ssl://") &&
+			!strings.HasPrefix(cmd.String("endpoint"), "tls://") {
 			log.Println("Warning: To use TLS the endpoint URL will have to begin with 'ssl://' or 'tls://'")
 		}
-	} else if (c.String("cert") != "" && c.String("key") == "") ||
-		(c.String("cert") == "" && c.String("key") != "") {
+	} else if (cmd.String("cert") != "" && cmd.String("key") == "") ||
+		(cmd.String("cert") == "" && cmd.String("key") != "") {
 		log.Println("Warning: For TLS to work both certificate and private key are needed. Skipping TLS.")
 	}
 
 	opts.OnConnect = func(client mqtt.Client) {
-		log.Infof("Connected to %s", c.String("endpoint"))
+		log.Infof("Connected to %s", cmd.String("endpoint"))
 		// subscribe on every (re)connect
 		token := client.Subscribe("$SYS/#", 0, func(_ mqtt.Client, msg mqtt.Message) {
 			processUpdate(msg.Topic(), string(msg.Payload()))
@@ -195,11 +187,11 @@ func runServer(c *cli.Context) error {
 		}
 	}
 	opts.OnConnectionLost = func(client mqtt.Client, err error) {
-		if c.Bool("reset-metrics") {
-			log.Warnf("Error: Connection to %s lost: %s, resetting counters", c.String("endpoint"), err)
+		if cmd.Bool("reset-metrics") {
+			log.Warnf("Error: Connection to %s lost: %s, resetting counters", cmd.String("endpoint"), err)
 			resetMetrics()
 		} else {
-			log.Warnf("Error: Connection to %s lost: %s", c.String("endpoint"), err)
+			log.Warnf("Error: Connection to %s lost: %s", cmd.String("endpoint"), err)
 		}
 	}
 	client := mqtt.NewClient(opts)
@@ -213,18 +205,18 @@ func runServer(c *cli.Context) error {
 			}
 			log.Errorf("Error: Failed to connect to broker: %s", token.Error())
 		} else {
-			log.Errorf("Timeout connecting to endpoint %s", c.String("endpoint"))
+			log.Errorf("Timeout connecting to endpoint %s", cmd.String("endpoint"))
 		}
 		time.Sleep(5 * time.Second)
 	}
-	log.Infof("Connected to %s", c.String("endpoint"))
+	log.Infof("Connected to %s", cmd.String("endpoint"))
 
 	// init the router and server
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/", serveVersion)
-	log.Infof("Listening on %s...", c.String("bind-address"))
-	err := http.ListenAndServe(c.String("bind-address"), nil)
-	fatalfOnError(err, "Failed to bind on %s: ", c.String("bind-address"))
+	log.Infof("Listening on %s...", cmd.String("bind-address"))
+	err := http.ListenAndServe(cmd.String("bind-address"), nil)
+	fatalfOnError(err, "Failed to bind on %s: ", cmd.String("bind-address"))
 	return nil
 }
 
